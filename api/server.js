@@ -36,13 +36,54 @@ app.use("/checkworker", check_worker)
 app.use(cookieParser());
 
 app.get('/', (req, res) => {
-  res.json({
-    message: 'WorkerBNC Backend API',
-    status: 'Running',
-    mongoDB: 'Connected',
-    timestamp: new Date().toISOString(),
-    endpoints: ['/health', '/api/*'] // List your actual endpoints
-  });
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>WorkerBNC API</title>
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background-color: #f3f4f6;
+          color: #1f2937;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          margin: 0;
+        }
+        .container {
+          background-color: white;
+          padding: 2rem 3rem;
+          border-radius: 12px;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+          text-align: center;
+        }
+        h1 { color: #4F46E5; margin-bottom: 0.5rem; }
+        p { color: #6b7280; font-size: 1.1rem; }
+        .status {
+          display: inline-block;
+          margin-top: 1rem;
+          padding: 0.5rem 1rem;
+          background-color: #dcfce7;
+          color: #166534;
+          border-radius: 9999px;
+          font-weight: 600;
+          font-size: 0.875rem;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>WorkerBNC Backend API</h1>
+        <p>The server is up and running!</p>
+        <div class="status">🟢 Active</div>
+      </div>
+    </body>
+    </html>
+  `);
 });
 // Routes
 app.use("/", router);
