@@ -1,11 +1,14 @@
-
 import mongoose from 'mongoose';
 
 let isDBconnected = false;
 const user_DB = async () => {
   if (isDBconnected) return;
   try {
-      await mongoose.connect(process.env.MONGODB_URI, {
+    if (!process.env.MONGODB_URI) {
+      console.error('MONGODB_URI is not defined in environment variables');
+      return;
+    }
+    await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 5000, // 5 seconds timeout
       socketTimeoutMS: 45000,
     });
@@ -13,9 +16,8 @@ const user_DB = async () => {
     console.log('Connected to MongoDB successfully');
   } catch (err) {
     console.error('MongoDB connection error:', err);
-    process.exit(1);
+    // Remove process.exit(1) to avoid crashing serverless function on cold start failure
   }
 };
-user_DB().catch(console.error);
-export default user_DB;
 
+export default user_DB;

@@ -1,7 +1,8 @@
 {
   "scripts": {
-    "start": "node server.js",
-    "vercel-start": "node server.js"
+    "start": "node local.js",
+    "dev": "node local.js",
+    "vercel-start": "node api/server.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
