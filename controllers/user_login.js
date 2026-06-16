@@ -3,9 +3,7 @@ import Client_schema from '../models/client_schema.js';
 import Worker_schema from '../models/Worker_schema.js';
 import bcrypt from "bcryptjs";
 
-
 const userLogin = async (req, resp) => {
-  console.log(req.body);
   const { Email, Password } = req.body;
   try {
 
@@ -17,18 +15,16 @@ const userLogin = async (req, resp) => {
     }
 
     if (!user) {
-      resp.status(404).json({ message: "User Not Found", success: false });
+      return resp.status(404).json({ message: "User Not Found", success: false });
     }
 
-    let isPasswordMatch = await bcrypt.compare(Password, user.Password);
+    const isPasswordMatch = await bcrypt.compare(Password, user.Password);
     if (!isPasswordMatch) {
-      user = await Worker_schema.findOne({ Email: Email });
-      role = "worker";
-      isPasswordMatch = await bcrypt.compare(Password, user.Password);
+      return resp.status(401).json({ message: "Invalid Password", success: false });
     }
 
     const token = jwt.sign({ id: user._id, Email: user.Email, role }, process.env.My_Secret_Key, { expiresIn: '7d' });
-    resp.status(200).cookie("token", token, {
+    return resp.status(200).cookie("token", token, {
       httpOnly: true,
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -37,18 +33,15 @@ const userLogin = async (req, resp) => {
 
 
   } catch (error) {
-    resp.status(500).json({ message: "Internal Server Error", success: false });
+    console.error('Login error:', error);
+    return resp.status(500).json({ message: "Internal Server Error", success: false });
   }
 }
 
-
-
-
 const logout = (req, resp) => {
   try {
-
     // Clear the cookie with same options as login
-    resp
+    return resp
       .clearCookie('token', {
         httpOnly: true,
         sameSite: 'strict',
@@ -62,7 +55,7 @@ const logout = (req, resp) => {
 
   } catch (error) {
     console.error('Logout error:', error);
-    resp.status(500).json({
+    return resp.status(500).json({
       message: 'Logout failed',
       success: false,
       error: error.message
@@ -70,5 +63,4 @@ const logout = (req, resp) => {
   }
 }
 
-
-export { userLogin, logout, };
+export { userLogin, logout };

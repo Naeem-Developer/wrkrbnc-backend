@@ -1,5 +1,5 @@
 import Worker_schema from '../models/Worker_schema.js';
-import otpStore from '../services/otpStore.js';
+import Otp_schema from '../models/otp_schema.js';
 
 const verifyWorkerOtp = async (req, resp) => {
   const { Email, otp } = req.body;
@@ -8,24 +8,18 @@ const verifyWorkerOtp = async (req, resp) => {
     return resp.status(400).json({ message: "Missing fields", success: false });
   }
 
-  const storedData = otpStore.get(Email);
-
-  if (!storedData) {
-    return resp.status(400).json({ message: "OTP expired or invalid", success: false });
-  }
-
-  // Check OTP match
-  if (storedData.otp !== otp) {
-    return resp.status(400).json({ message: "Incorrect OTP", success: false });
-  }
-
-  // Check OTP expiration
-  if (Date.now() > storedData.expires) {
-    otpStore.delete(Email);
-    return resp.status(400).json({ message: "OTP expired", success: false });
-  }
-
   try {
+    const storedData = await Otp_schema.findOne({ Email });
+
+    if (!storedData || storedData.Role !== 'worker') {
+      return resp.status(400).json({ message: "OTP expired or invalid", success: false });
+    }
+
+    // Check OTP match
+    if (storedData.otp !== otp) {
+      return resp.status(400).json({ message: "Incorrect OTP", success: false });
+    }
+
     // Create worker in DB
     const newWorker = new Worker_schema({
       First_Name: storedData.First_Name,
@@ -42,15 +36,16 @@ const verifyWorkerOtp = async (req, resp) => {
     await newWorker.save();
 
     // Delete temp stored data
-    otpStore.delete(Email);
+    await Otp_schema.deleteOne({ _id: storedData._id });
 
-    resp.status(200).json({
+    return resp.status(200).json({
       message: "Worker verified and account created successfully!",
       success: true,
       worker: newWorker,
     });
   } catch (error) {
-    resp.status(500).json({ message: "Server error", success: false });
+    console.error('Worker OTP Verification Error:', error);
+    return resp.status(500).json({ message: "Server error", success: false });
   }
 };
 

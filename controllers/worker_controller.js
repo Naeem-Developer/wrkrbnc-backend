@@ -1,7 +1,7 @@
 import Worker_schema from '../models/Worker_schema.js';
+import Otp_schema from '../models/otp_schema.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import otpStore from '../services/otpStore.js';
 import cloudinary from "../utalities/cloudnary.js";
 import streamifier from "streamifier";
 import sgMail from '@sendgrid/mail';
@@ -27,15 +27,6 @@ const createworker = async (req, resp) => {
 
     // --- Upload Image to Cloudinary ---
     if (req.file) {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: "workerbnc/workers" },
-        (error, result) => {
-          if (error) {
-            console.log("Cloudinary Error:", error);
-          }
-        }
-      );
-
       // Convert buffer to readable stream
       await new Promise((resolve, reject) => {
         streamifier.createReadStream(req.file.buffer).pipe(
@@ -51,34 +42,30 @@ const createworker = async (req, resp) => {
       });
     }
 
-    // Store OTP + worker data temporarily
-    otpStore.set(Email, {
+    // Remove any existing OTP for this email
+    await Otp_schema.deleteMany({ Email });
+
+    // Store OTP + worker data temporarily in DB
+    const newOtp = new Otp_schema({
+      Role: 'worker',
       First_Name,
       Last_Name,
       Email,
       City,
       Address,
-      otp,
       Profession,
+      otp,
       Password: hashedPassword,
       Profile_Pic: uploadedImageUrl,
-      Profile_Pic_PublicId: req.file ? uploadedImageUrl.split('/').pop().split('.')[0] : null,
-      expires: Date.now() + 5 * 60 * 1000
+      Profile_Pic_PublicId: req.file && uploadedImageUrl ? uploadedImageUrl.split('/').pop().split('.')[0] : null,
     });
+    await newOtp.save();
 
     // Send OTP email
-     // 4. DEBUG: Check environment variable
-        console.log('Checking API_KEY Key...');
-        console.log('API_KEY exists:', !!process.env.API_KEY);
-        console.log('API_KEY exists:', !!process.env.API_KEY);
-        console.log('All env vars:', Object.keys(process.env).filter(k => k.includes('Sendgrid') || k.includes('Sendgrid')));
+    sgMail.setApiKey(process.env.API_KEY || process.env.SENDGRID_API_KEY); 
 
-        // 5. Send verification email
-        sgMail.setApiKey(process.env.API_KEY); // Try both
-
-        console.log('Attempting to send email to:', Email);
-
-        const { data, error } = await sgMail.send({
+    try {
+        await sgMail.send({
             to: Email,
             from: 'workerbnc@gmail.com',
             subject: 'Verify Your Email - WorkerBNC',
@@ -119,29 +106,25 @@ const createworker = async (req, resp) => {
                 </div>
             `
         });
-
-        // 6. Check if email was sent successfully
-        if (error) {
-            console.error('sgMail API Error:', error);
-            return resp.status(500).json({
-                message: 'Failed to send verification email',
-                success: false,
-                error: error.message
-            });
-        }
-
-        console.log('Email sent successfully! Email ID:', data?.id);
-
-        // 7. Return success response
-        resp.status(200).json({
+        
+        return resp.status(200).json({
             message: 'Signup successful! Please check your email for the OTP.',
             success: true,
             emailSent: true
         });
 
-  } catch (error) {
-    resp.status(500).json({ message: "Server error", success: false });
+    } catch (emailError) {
+        console.error('sgMail API Error:', emailError);
+        return resp.status(500).json({
+            message: 'Failed to send verification email',
+            success: false,
+            error: emailError.message
+        });
+    }
 
+  } catch (error) {
+    console.error('Worker Signup Error:', error);
+    return resp.status(500).json({ message: "Server error", success: false, error: error.message });
   }
 };
 

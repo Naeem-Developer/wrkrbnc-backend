@@ -1,24 +1,24 @@
 import Worker_schema from "../models/Worker_schema.js";
 import jwt from "jsonwebtoken";
 
-
 const check_worker = async(req, resp, next)=>{
     try {
         const {id} = req.params;
-     const worker_confermation = await Worker_schema.findById(id);
-     if(!worker_confermation){
-        resp.status(404).json({message:"not found", success:false})
-     }
+        const worker_confermation = await Worker_schema.findById(id);
+        if(!worker_confermation){
+            return resp.status(404).json({message:"not found", success:false})
+        }
 
-     next();
+        next();
         
     } catch (error) {
-        resp.status(500).json({message:"Internal server error", success:false})
+        console.error('Middleware check_worker error:', error);
+        return resp.status(500).json({message:"Internal server error", success:false})
     }
      
 };
-// middleware/auth.js
 
+// middleware/auth.js
 const authenticate = (req, res, next) => {
   const token = req.cookies.token; // JWT stored in HttpOnly cookie
   if (!token) {
@@ -44,6 +44,4 @@ const authorize = (roles = []) => {
   };
 };
 
-
 export { check_worker, authenticate, authorize };
-

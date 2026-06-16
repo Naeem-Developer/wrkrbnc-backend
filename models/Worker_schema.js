@@ -85,11 +85,10 @@ const User_Schema = new mongoose.Schema({
 
     services: [serviceSchema],
     portfolio: [portfolioSchema],
-    
-
-
-
 })
 
+// Add compound text index for searching workers quickly
+User_Schema.index({ Profession: 'text', City: 'text', 'services.title': 'text' });
+
 const Worker_schema = mongoose.model('Workers_DB', User_Schema);
-export default Worker_schema;
+export default Worker_schema;
