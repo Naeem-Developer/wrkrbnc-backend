@@ -2,7 +2,7 @@ import Client_schema from "../models/client_schema.js";
 import Otp_schema from "../models/otp_schema.js";
 import bcrypt from "bcryptjs";
 import crypto from 'crypto';
-import sgMail from '@sendgrid/mail';
+import sendMail from '../utalities/mailer.js';
 
 
 // API function to create a new client
@@ -39,12 +39,9 @@ const createclient = async (req, resp) => {
         await newOtp.save();
 
         // Send verification email
-        sgMail.setApiKey(process.env.API_KEY || process.env.SENDGRID_API_KEY);
-
         try {
-            await sgMail.send({
+            await sendMail({
                 to: Email,
-                from: 'workerbnc@gmail.com',
                 subject: 'Verify Your Email - WorkerBNC',
                 html: `
                     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
@@ -92,7 +89,7 @@ const createclient = async (req, resp) => {
             });
 
         } catch (emailError) {
-            console.error('sgMail API Error:', emailError);
+            console.error('Email Error:', emailError);
             return resp.status(500).json({
                 message: 'Failed to send verification email',
                 success: false,

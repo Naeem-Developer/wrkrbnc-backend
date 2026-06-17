@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import cloudinary from "../utalities/cloudnary.js";
 import streamifier from "streamifier";
-import sgMail from '@sendgrid/mail';
+import sendMail from '../utalities/mailer.js';
 
 const createworker = async (req, resp) => {
   const { First_Name, Last_Name, Email, City, Address, Profession, Password } = req.body;
@@ -62,12 +62,9 @@ const createworker = async (req, resp) => {
     await newOtp.save();
 
     // Send OTP email
-    sgMail.setApiKey(process.env.API_KEY || process.env.SENDGRID_API_KEY); 
-
     try {
-        await sgMail.send({
+        await sendMail({
             to: Email,
-            from: 'workerbnc@gmail.com',
             subject: 'Verify Your Email - WorkerBNC',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
@@ -114,7 +111,7 @@ const createworker = async (req, resp) => {
         });
 
     } catch (emailError) {
-        console.error('sgMail API Error:', emailError);
+        console.error('Email Error:', emailError);
         return resp.status(500).json({
             message: 'Failed to send verification email',
             success: false,
