@@ -21,8 +21,6 @@ const user_DB = async () => {
       socketTimeoutMS: 45000,
       maxPoolSize: 10,
       family: 4,
-      keepAlive: true,
-      keepAliveInitialDelay: 300000,
     }).then((mongooseInstance) => {
       cached.conn = mongooseInstance;
       console.log('Connected to MongoDB successfully');
