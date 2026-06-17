@@ -1,14 +1,31 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import user_DB from '../config/user_DB.js';
 import router from '../routes/user_routes.js';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { check_worker } from '../auth/middleware.js';
-
+import dotenv from 'dotenv';
+dotenv.config();
 
 
 
 const app = express();
+
+app.use(async (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      await user_DB();
+    } catch (err) {
+      console.error('Database not ready for request:', err);
+      return res.status(503).json({
+        message: 'Database connection is not ready yet. Please try again in a moment.',
+        success: false,
+      });
+    }
+  }
+  next();
+});
 const corsOptions = {
   origin: ['https://wrkrbnc.vercel.app', 'http://localhost:3000'],
   credentials: true,
@@ -18,13 +35,13 @@ const corsOptions = {
   maxAge: 86400
 };
 
-app.use(cors(corsOptions)); 
+app.use(cors(corsOptions));
 
 // Middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   console.log('Origin:', req.headers.origin);
-  
+
   next();
 });
 
