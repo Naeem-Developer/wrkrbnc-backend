@@ -1,39 +1,49 @@
 import mongoose from 'mongoose';
 
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  throw new Error('MONGODB_URI is not defined in environment variables');
+}
+
 mongoose.set('bufferCommands', false);
 
-let isDBconnected = false;
-const user_DB = async () => {
-  if (isDBconnected && mongoose.connection.readyState === 1) return;
+const cached = global.mongooseCache || (global.mongooseCache = { conn: null, promise: null });
 
-  if (!process.env.MONGODB_URI) {
-    throw new Error('MONGODB_URI is not defined in environment variables');
+const user_DB = async () => {
+  if (cached.conn && mongoose.connection.readyState === 1) {
+    return cached.conn;
   }
 
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI, {
+      bufferCommands: false,
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       maxPoolSize: 10,
       family: 4,
+      keepAlive: true,
+      keepAliveInitialDelay: 300000,
+    }).then((mongooseInstance) => {
+      cached.conn = mongooseInstance;
+      console.log('Connected to MongoDB successfully');
+      return cached.conn;
+    }).catch((err) => {
+      cached.promise = null;
+      console.error('MongoDB connection error:', err);
+      throw err;
     });
-
-    isDBconnected = true;
-    console.log('Connected to MongoDB successfully');
-  } catch (err) {
-    isDBconnected = false;
-    console.error('MongoDB connection error:', err);
-    throw err;
   }
+
+  return cached.promise;
 };
 
 mongoose.connection.on('disconnected', () => {
-  isDBconnected = false;
+  cached.conn = null;
+  cached.promise = null;
   console.warn('MongoDB disconnected');
 });
 
 mongoose.connection.on('reconnected', () => {
-  isDBconnected = true;
   console.log('MongoDB reconnected');
 });
 

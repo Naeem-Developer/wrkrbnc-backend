@@ -117,11 +117,4 @@ app.get('/test', (req, res) => {
 });
 
 
-// Connect DB and start server
-user_DB().then(() => {
-  console.log('MongoDB connection initialized');
-}).catch(err => {
-  console.error('MongoDB init error:', err);
-});
-
 export default app;
